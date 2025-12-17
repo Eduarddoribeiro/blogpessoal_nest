@@ -2,38 +2,46 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post,
 import { UsuarioService } from "../services/usuario.service";
 import { Usuario } from "../entities/usuario.entity";
 import { JwtAuthGuard } from "../../auth/guard/jwt-auth.guard";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { UsuarioSemSenha } from "../../auth/interfaces/usuario-sem-senha.interface";
 
-
+@ApiTags('Usuario')
 @Controller("/usuarios")
-export class UsuarioController{
-
-    constructor(private readonly usuarioService: UsuarioService){ }
+@ApiBearerAuth()
+export class UsuarioController {
+    constructor(private readonly usuarioService: UsuarioService) { }
 
     @UseGuards(JwtAuthGuard)
     @Get('/all')
     @HttpCode(HttpStatus.OK)
-    findAll(): Promise<Usuario[]>{
-        return this.usuarioService.findAll();
+    async findAll(): Promise<UsuarioSemSenha[]> {
+        const usuarios = await this.usuarioService.findAll();
+        return usuarios.map(({ senha, ...usuarioSemSenha }) => usuarioSemSenha);
     }
-
+    
     @UseGuards(JwtAuthGuard)
     @Get('/:id')
     @HttpCode(HttpStatus.OK)
-    findById(@Param('id', ParseIntPipe) id: number): Promise<Usuario>{
-        return this.usuarioService.findById(id)
+    async findById(@Param('id', ParseIntPipe) id: number): Promise<UsuarioSemSenha> {
+        const usuario = await this.usuarioService.findById(id);
+        const { senha, ...usuarioSemSenha } = usuario;
+        return usuarioSemSenha;
     }
 
-    @Post('/cadastrar')
     @HttpCode(HttpStatus.CREATED)
-    async create(@Body() usuario: Usuario): Promise<Usuario>{
-        return this.usuarioService.create(usuario)
+    @Post('/cadastrar')
+    async create(@Body() usuario: Usuario): Promise<UsuarioSemSenha> {
+        const usuarioCriado = await this.usuarioService.create(usuario);
+        const { senha, ...usuarioSemSenha } = usuarioCriado;
+        return usuarioSemSenha;
     }
 
     @UseGuards(JwtAuthGuard)
     @Put('/atualizar')
     @HttpCode(HttpStatus.OK)
-    async update(@Body() usuario: Usuario): Promise<Usuario>{
-        return this.usuarioService.update(usuario)
+    async update(@Body() usuario: Usuario): Promise<UsuarioSemSenha> {
+        const usuarioAtualizado = await this.usuarioService.update(usuario);
+        const { senha, ...usuarioSemSenha } = usuarioAtualizado;
+        return usuarioSemSenha;
     }
-
 }
